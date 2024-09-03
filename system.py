@@ -81,7 +81,7 @@ class WDSControl:
                 en.setlinkvalue(ph, index=link_idx, property=en.SETTING, value=input_from_zero[int(t / 3600), _])
 
             for _, node_idx in enumerate(control_nodes_idx):
-                uu = max(0, input_from_zero[int(t / 3600), _])
+                uu = max(0, input_from_zero[int(t / 3600), len(self.control_links) + _])
                 en.setnodevalue(ph, index=node_idx, property=en.SOURCEQUAL, value=uu)
 
             # run hydraulic and quality simulations of the current time step
@@ -212,13 +212,17 @@ class WDSControl:
         err = en.open(ph, self.inp_path, "net.rpt", "net.out")
         n = en.getcount(ph, en.PATCOUNT)
 
-        for i, element in enumerate(self.control_nodes + self.control_links):
+        for i, element in enumerate(self.control_links):
             en.addpattern(ph, f"_{element}")
             pat_idx = en.getpatternindex(ph, f"_{element}")
-
             pat = make_array(self.implemented[:, i])
             en.setpattern(ph, pat_idx, pat, len(self.implemented[:, i]))
 
+        for i, element in enumerate(self.control_nodes):
+            en.addpattern(ph, f"_{element}")
+            pat_idx = en.getpatternindex(ph, f"_{element}")
+            pat = make_array(self.implemented[:, i])
+            en.setpattern(ph, pat_idx, pat, len(self.implemented[:, len(self.control_links) + i]))
             node_idx = en.getnodeindex(ph, element)
             en.setnodevalue(ph, node_idx, en.SOURCEPAT, pat_idx)
 
