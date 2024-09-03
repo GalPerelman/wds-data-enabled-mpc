@@ -162,9 +162,6 @@ class WDSControl:
         y_ref, y_ub, y_lb = to_array(y_ref), to_array(y_ub), to_array(y_lb)
 
         for i, element in enumerate(self.target_nodes):
-            # axes[0].plot(y_ref, label="Ref", zorder=1, c="k")
-            # axes[0].plot(y_ub, label="Constraint", zorder=1, c="k", linestyle="--")
-            # axes[0].plot(y_lb, label="Constraint", zorder=1, c="k", linestyle="--")
             axes[0].plot(self.target_values[1:, i], label="DeePC", zorder=5)
             if secondary is not None:
                 for r, _ in enumerate(secondary):
