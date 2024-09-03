@@ -1,0 +1,55 @@
+inp_path: "Data/Pescara.inp"
+control_links: []
+control_nodes: ['15', '43', '65']
+target_nodes: ["1", "45", "39"]
+target_param: 12  # en.PRESSURE=11, en.QUALITY=12
+n_train: 500
+input_signal:
+  name: ""
+  mu: [1.4, 1.4, 1.4]
+  sigma: [0.1, 0.1, 0.1]
+  freq: null
+  noise: null
+  signal_type: "random"
+  times_values: null
+
+input_loss: false
+y_ref: 1
+y_lb: 0.5
+y_ub: 2
+u_lb: 0
+u_ub: 10
+wait: 6
+t_ini: 24
+horizon: 12
+lg: 0.01 #1000
+ly: 0.01 #100
+lu: 1 #0.1
+experiment_horizon: 336 # 168 336 504
+noise_std: 0.05
+compare_signals:
+  -
+    name: "Constant"
+    mu: [1, 1.4, 1.1]
+    sigma: [0, 0, 0]
+    freq: null
+    noise: null
+    signal_type: "random"
+    times_values: null
+    plot: false
+#  -
+#    name: "Time based"
+#    mu: 0
+#    sigma: 0
+#    freq: 0
+#    noise: 0
+#    signal_type: "sequence"
+#    times_values:
+#      - [1.2, 6]
+#      - [1, 12]
+#      - [1.2, 6]
+
+input_y_label: "Chlorine Injection (mg/L)"
+output_y_label: "Chlorine (mg/L)"
+x_label: "Time (hr)"
+plot_demand_pattern: true

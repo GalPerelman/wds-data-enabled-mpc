@@ -1,0 +1,57 @@
+inp_path: "Data/Fossolo.inp"
+control_links: ['59']
+control_nodes: []
+target_nodes: ["21"]
+target_param: 11  # en.PRESSURE=11, en.QUALITY=12
+n_train: 600
+input_signal:
+  name: ""
+  mu: [45]
+  sigma: [8]
+  freq: [0]
+  noise: [0]
+  signal_type: "random"
+  times_values: null
+
+input_loss: false
+y_ref: 30
+y_lb: 25
+y_ub: 35
+u_lb: 0
+u_ub: 100
+wait: 1
+t_ini: 24 #48
+horizon: 12
+lg: 0.01
+ly: 100 #1000
+lu: 0.1
+experiment_horizon: 168 # 168 336 504
+noise_std: 0.05
+compare_signals:
+  -
+    name: "Constant-"
+    mu: [45]
+    sigma: [0]
+    freq: [0]
+    noise: [0]
+    signal_type: "const"
+    "times_values": null
+  -
+    name: "Time based-"
+    mu: [0]
+    sigma: [0]
+    freq: [0]
+    noise: [0]
+    signal_type: "sequence"
+    times_values:
+      -
+        - [40, 6]
+        - [55, 12]
+        - [40, 6]
+
+input_y_label: "Input: PRV Setting"
+output_y_label: "Output: Pressure (m)"
+x_label: "Time (hr)"
+plot_demand_pattern: true
+plot_constraints: true
+plot_legend_cols: 0  # number of legend columns, 0 for no legend
