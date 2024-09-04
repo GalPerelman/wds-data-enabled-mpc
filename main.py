@@ -12,16 +12,18 @@ import ddpc
 import system
 import utils
 
+COLORS = ["#0077B8", "#DF5353", "#fdc85e", "#b7b3aa"]
+plt.rcParams['axes.prop_cycle'] = plt.cycler(color=COLORS)
+
 
 class Experiment:
     def __init__(self, inp_path, control_links, control_nodes, target_nodes, target_param,
-                 # init_input_mu, init_input_sigma, init_input_freq,
-                 input_signal,
-                 n_train, input_loss,
+                 input_signal, n_train, input_loss,
                  y_ref, y_lb, y_ub, u_lb, u_ub, wait, t_ini,
                  horizon, lg, ly, lu, experiment_horizon, noise_std,
-                 compare_signals,
-                 input_y_label, output_y_label, x_label, plot_demand_pattern
+                 compare_signals, input_y_label, output_y_label, x_label,
+                 plot_demand_pattern, plot_constraints, plot_legend_cols, plot_y_legend_label, plot_u_legend_label,
+                 plot_y_labels_max_len
                  ):
         self.inp_path = inp_path
         self.control_links = control_links
@@ -44,6 +46,11 @@ class Experiment:
         self.output_y_label = output_y_label
         self.x_label = x_label
         self.plot_demand_pattern = plot_demand_pattern
+        self.plot_constraints = plot_constraints
+        self.plot_legend_cols = plot_legend_cols
+        self.plot_y_legend_label = plot_y_legend_label
+        self.plot_u_legend_label = plot_u_legend_label
+        self.plot_y_labels_max_len = plot_y_labels_max_len
 
         self.mae, self.me = None, None
 
@@ -98,6 +105,9 @@ class Experiment:
 
     def plot(self, sys, label, fig=None, moving_avg_size=0):
         n_inputs = sys.implemented.shape[1]
+
+    def plot(self, sys, fig=None, moving_avg_size=0):
+        n_inputs = 1 #sys.implemented.shape[1]
         n_outputs = sys.target_values.shape[1]
         if self.plot_demand_pattern:
             k = 1
@@ -112,15 +122,19 @@ class Experiment:
 
         t = len(sys.target_values[1:, 0])
         for i, element in enumerate(sys.target_nodes):
-            axes[0].hlines(y=self.y_ref, xmin=0, xmax=t, color='k', linestyles="--")
-            axes[0].plot(sys.target_values[1:, i], label=label + element, zorder=5)
+            axes[0].plot(sys.target_values[1:, i], label=self.plot_y_legend_label[i], zorder=4)
             axes[0].axvspan(0, self.n_train, facecolor='grey', alpha=0.2, zorder=0)
             axes[0].grid(True)
-            axes[0].legend(ncols=3)
-            axes[0].set_ylabel(utils.split_label(self.output_y_label, 8))
+            axes[0].set_ylabel(utils.split_label(self.output_y_label, self.plot_y_labels_max_len))
+        axes[0].hlines(y=self.y_ref, xmin=0, xmax=t, color='k', linestyles="--", zorder=5, label="$y_{ref}$")
+        if self.plot_constraints:
+            axes[0].hlines(y=self.y_lb, xmin=0, xmax=t, color='k', zorder=5, label='Constraints')
+            axes[0].hlines(y=self.y_ub, xmin=0, xmax=t, color='k', zorder=5)
+        if self.plot_legend_cols > 0:
+            axes[0].legend(ncols=self.plot_legend_cols, fontsize=10)
 
         for i, element in enumerate(sys.control_nodes + sys.control_links):
-            axes[i + 1].step(range(t), sys.implemented[1:, i], label=label + element, zorder=5, where='post')
+            axes[1].step(range(t), sys.implemented[1:, i], label=self.plot_u_legend_label[i], zorder=5, where='post')
             if moving_avg_size > 0:
                 window = np.ones(moving_avg_size)
                 moving_avg = np.convolve(sys.implemented[1:, i], window, mode='valid') / 12
@@ -128,16 +142,17 @@ class Experiment:
                 moving_avg = np.pad(moving_avg, (pad_width, 0), 'constant', constant_values=(np.nan,))
                 axes[i + 1].plot(moving_avg, 'k')
 
-            axes[i + 1].axvspan(0, self.n_train, facecolor='grey', alpha=0.2, zorder=0)
-            axes[i + 1].grid(True)
-            axes[i + 1].legend()
-            axes[i + 1].set_ylabel(utils.split_label(self.input_y_label, 8))
+            axes[1].axvspan(0, self.n_train, facecolor='grey', alpha=0.2, zorder=0)
+            axes[1].grid(True)
+            axes[1].set_ylabel(utils.split_label(self.input_y_label, self.plot_y_labels_max_len))
+            if self.plot_legend_cols > 0:
+                axes[1].legend(ncols=self.plot_legend_cols, fontsize=10)
 
         if self.plot_demand_pattern:
             pat = self.wds.get_demand_pattern(pat_idx=1)
             pat = utils.extend_array_to_n_values(pat, self.wds.implemented[1:, 0].shape[0])
-            axes[-1].bar(range(len(pat)), pat, zorder=5, width=1.0)
-            axes[-1].set_ylabel(utils.split_label("Demand Pattern", 8))
+            axes[-1].bar(range(len(pat)), pat, zorder=5, width=1.0, edgecolor='k', alpha=0.8, linewidth=0.1)
+            axes[-1].set_ylabel(utils.split_label("Demand Pattern", self.plot_y_labels_max_len))
 
         axes[-1].set_xlabel(self.x_label)
         secax = axes[0].secondary_xaxis('top')
@@ -169,19 +184,24 @@ class Experiment:
                                                  signal_type=s["signal_type"]
                                                  )
 
-            init_input = np.tile(init_input, (1, len(self.control_links) + len(self.control_nodes)))
+            # init_input = np.tile(init_input, (1, len(self.control_links) + len(self.control_nodes)))
             sys, u, y = run_comparable_signal(sys, init_input, noise_std=self.noise_std)
             mae, me = self.get_error(y=sys.target_values[-self.experiment_horizon:, :])
             print(f"{s['name']} --> MAE: {mae:.6f} | ME: {me:.3f}")
 
             t = len(sys.target_values[1:, 0])
-            for i, element in enumerate(sys.target_nodes):
-                axes[0].plot(sys.target_values[1:, i], label=s["name"] + element, zorder=5)
-                axes[0].legend(ncol=len(signals) + 1)
+            if "plot" in s and s["plot"]:
+                for i, element in enumerate(sys.target_nodes):
+                    axes[0].plot(sys.target_values[1:, i], label=s["name"], zorder=2)
+                    if self.plot_legend_cols > 0:
+                        axes[0].legend(ncols=self.plot_legend_cols, fontsize=10)
 
-            for i, element in enumerate(sys.control_nodes + sys.control_links):
-                axes[i + 1].step(range(t), sys.implemented[1:, i], label=s["name"] + element, zorder=5, where='post')
-                axes[i + 1].legend(ncol=len(signals) + 1)
+                for i, element in enumerate(sys.control_nodes + sys.control_links):
+                    axes[1].step(range(t), sys.implemented[1:, i], label=s["name"], zorder=2, where='post')
+                    if self.plot_legend_cols > 0:
+                        axes[1].legend(ncols=self.plot_legend_cols, fontsize=10)
+
+        return fig
 
 
 def run_comparable_signal(sys, ref_input_signal, noise_std):

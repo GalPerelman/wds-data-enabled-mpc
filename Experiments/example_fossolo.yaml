@@ -29,15 +29,17 @@ experiment_horizon: 168 # 168 336 504
 noise_std: 0.05
 compare_signals:
   -
-    name: "Constant-"
+    name: "Constant"
     mu: [45]
     sigma: [0]
     freq: [0]
     noise: [0]
     signal_type: "const"
-    "times_values": null
+    times_values: null
+    plot: true
+    color: "#449C75"
   -
-    name: "Time based-"
+    name: "Time based"
     mu: [0]
     sigma: [0]
     freq: [0]
@@ -48,10 +50,15 @@ compare_signals:
         - [40, 6]
         - [55, 12]
         - [40, 6]
+    plot: true
+    color: "#E8B65E"
 
-input_y_label: "Input: PRV Setting"
-output_y_label: "Output: Pressure (m)"
+input_y_label: "PRV Setting"
+output_y_label: "Pressure (m)"
 x_label: "Time (hr)"
 plot_demand_pattern: true
 plot_constraints: true
-plot_legend_cols: 0  # number of legend columns, 0 for no legend
+plot_legend_cols: 5  # number of legend columns, 0 for no legend
+plot_y_legend_label: ["y"]
+plot_u_legend_label: ["u"]
+plot_y_labels_max_len: 20
