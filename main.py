@@ -81,11 +81,6 @@ class Experiment:
                           lambda_g=self.lg, lambda_y=self.ly, lambda_u=self.lu,
                           experiment_horizon=self.experiment_horizon, noise_std=self.noise_std)
 
-        # only for example 2
-        # to do: move this to the input config
-        # self.init_input[:, 0] = self.init_input[:, 0] * 0.9
-        # self.init_input[:, 1] = self.init_input[:, 0] * 1.1
-        # self.init_input[:, 2] = self.init_input[:, 0] * 0.9
         model.init_deepc(self.init_input)
         model.run()
         self.mae, self.me = self.get_error(y=self.wds.target_values[-self.experiment_horizon:, :])
@@ -217,47 +212,8 @@ def run_comparable_signal(sys, ref_input_signal, noise_std):
     return ref_sys, u, y
 
 
-def grid_search(export_path, cfg):
-    df = pd.DataFrame()
-    for lg in [0, 0.01, 0.1, 1, 10, 100, 1000]:
-        for ly in [0, 0.01, 0.1, 1, 10, 100, 1000]:
-            for lu in [0, 0.01, 0.1, 1, 10, 100, 1000]:
-                cfg['lg'], cfg['ly'], cfg['lu'] = lg, ly, lu
-                mae = run(cfg, plot=False)
-
-                # mae = func(lg=lg, ly=ly, lu=lu, plot=False)
-                df = pd.concat([df, pd.DataFrame({"lg": lg, "ly": ly, "lu": lu, "mae": mae}, index=[len(df)])])
-                print(df)
-                df.to_csv(export_path)
-
-
 def run(cfg, plot=True, export_inp=''):
-    e = Experiment(inp_path=cfg["inp_path"],
-                   control_links=cfg["control_links"],
-                   control_nodes=cfg["control_nodes"],
-                   target_nodes=cfg["target_nodes"],
-                   target_param=cfg["target_param"],
-                   n_train=cfg["n_train"],
-                   input_signal=cfg["input_signal"],
-                   input_loss=cfg["input_loss"],
-                   y_ref=cfg["y_ref"],
-                   y_lb=cfg["y_lb"], y_ub=cfg["y_ub"],
-                   u_lb=cfg["u_lb"], u_ub=cfg["u_ub"],
-                   wait=cfg["wait"],
-                   t_ini=cfg["t_ini"],
-                   horizon=cfg["horizon"],
-                   lg=cfg["lg"],
-                   ly=cfg["ly"],
-                   lu=cfg["lu"],
-                   experiment_horizon=cfg["experiment_horizon"],
-                   noise_std=cfg["noise_std"],
-                   compare_signals=cfg["compare_signals"],
-                   input_y_label=cfg["input_y_label"],
-                   output_y_label=cfg["output_y_label"],
-                   x_label=cfg["x_label"],
-                   plot_demand_pattern=cfg["plot_demand_pattern"]
-                   )
-
+    e = Experiment(**cfg)
     e.run_experiment()
     if export_inp:
         e.wds.export_inp_with_patterns(export_path=export_inp)
