@@ -112,6 +112,7 @@ def grid_search(export_path, cfg, param_grid):
 
         try:
             experiment = main.run(cfg, plot=False)
+            iter_params['cost'] = experiment.cost
             iter_params['mae'] = experiment.mae
             iter_params['v_count'] = experiment.v_count
             iter_params['v_rate'] = experiment.v_rate

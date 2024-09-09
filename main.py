@@ -52,7 +52,7 @@ class Experiment:
         self.plot_u_legend_label = plot_u_legend_label
         self.plot_y_labels_max_len = plot_y_labels_max_len
 
-        self.mae, self.me = None, None
+        self.cost = self.mae = self.me = self.v_count = self.v_count = None
 
         self.wds = system.WDSControl(inp_path=self.inp_path,
                                      control_links=self.control_links,
@@ -83,23 +83,45 @@ class Experiment:
 
         model.init_deepc(self.init_input)
         model.run()
-        self.mae, self.me = self.get_error(y=self.wds.target_values[-self.experiment_horizon:, :])
-        print(f"MAE: {self.mae:.3f} | ME: {self.me:.3f}")
+
+        y = self.wds.target_values[-self.experiment_horizon:, :]
+        u = self.wds.implemented[-self.experiment_horizon:, :]
+        ref = np.ones(y.shape) * self.y_ref
+        self.cost = np.linalg.norm(y - ref, 'fro') ** 2 + self.input_loss * np.linalg.norm(u, 'fro') ** 2
+        self.mae, self.me = self.get_error(y=y)
+        self.v_count, self.v_rate = self.get_violations(y=y)
+        print(f"Cost: {self.cost:.3f} | MAE: {self.mae:.3f} | ME: {self.me:.3f} | Violations: {self.v_count:.0f}"
+              f"| ME: {self.v_rate:.3f}")
+        # mae, me = self.get_error(y=self.wds.target_values[-self.experiment_horizon:, :], n=24)
+        # print(f"24 -> MAE: {mae:.3f} | ME: {me:.3f}")
         return self.wds
 
-    def get_error(self, y):
+    def get_error(self, y, n=None):
         if not isinstance(self.y_ref, np.ndarray):
             y_ref = np.array([self.y_ref])
         else:
             y_ref = self.y_ref
 
         y_ref = np.tile(utils.extend_array_to_n_values(y_ref, self.experiment_horizon), (y.shape[1], 1)).T
+        if n is not None:
+            y, y_ref = y[-n:], y_ref[-n:]
         mae = np.mean(np.abs(y - y_ref))
         me = np.mean(y - y_ref)
         return mae, me
 
-    def plot(self, sys, label, fig=None, moving_avg_size=0):
-        n_inputs = sys.implemented.shape[1]
+    def get_violations(self, y, ub=None, lb=None):
+        if ub is None:
+            ub = self.y_ub
+        if lb is None:
+            lb = self.y_lb
+
+        outside_mask = (y < lb) | (y > ub)
+        observations_with_violations = np.any(outside_mask, axis=1)
+        violations_count = np.sum(observations_with_violations)
+        # violations_count = np.sum((y < lb) | (y > ub))
+        violations_rate = violations_count / y.shape[0]
+        v = utils.count_violations(y, ub, lb)
+        return violations_count, violations_rate
 
     def plot(self, sys, fig=None, moving_avg_size=0):
         n_inputs = 1 #sys.implemented.shape[1]
