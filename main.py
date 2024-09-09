@@ -140,15 +140,20 @@ class Experiment:
         t = len(sys.target_values[1:, 0])
         for i, element in enumerate(sys.target_nodes):
             axes[0].plot(sys.target_values[1:, i], label=self.plot_y_legend_label[i], zorder=4)
-            axes[0].axvspan(0, self.n_train, facecolor='grey', alpha=0.2, zorder=0)
-            axes[0].grid(True)
-            axes[0].set_ylabel(utils.split_label(self.output_y_label, self.plot_y_labels_max_len))
-        axes[0].hlines(y=self.y_ref, xmin=0, xmax=t, color='k', linestyles="--", zorder=5, label="$y_{ref}$")
+
+        axes[0].hlines(y=self.y_ref, xmin=0, xmax=t, color='k', zorder=5, label="$y_{ref}$")
+        axes[0].axvspan(0, self.n_train, facecolor='grey', alpha=0.3, zorder=0)
+        axes[0].grid(True)
+        axes[0].set_ylabel(utils.split_label(self.output_y_label, self.plot_y_labels_max_len))
         if self.plot_constraints:
-            axes[0].hlines(y=self.y_lb, xmin=0, xmax=t, color='k', zorder=5, label='Constraints')
-            axes[0].hlines(y=self.y_ub, xmin=0, xmax=t, color='k', zorder=5)
+            axes[0].hlines(y=self.y_lb, xmin=0, xmax=t, linestyles="--", color='k', alpha=0.5, zorder=5, label='Constraints')
+            axes[0].hlines(y=self.y_ub, xmin=0, xmax=t, linestyles="--", color='k', alpha=0.5, zorder=5)
         if self.plot_legend_cols > 0:
-            axes[0].legend(ncols=self.plot_legend_cols, fontsize=10)
+            # axes[0].legend(ncols=self.plot_legend_cols, fontsize=10)
+            handles, labels = axes[0].get_legend_handles_labels()
+            axes[0].legend(utils.flip(handles, self.plot_legend_cols),
+                           utils.flip(labels, self.plot_legend_cols), ncol=self.plot_legend_cols,
+                           fontsize=9)
 
         for i, element in enumerate(sys.control_nodes + sys.control_links):
             axes[1].step(range(t), sys.implemented[1:, i], label=self.plot_u_legend_label[i], zorder=5, where='post')
@@ -159,11 +164,14 @@ class Experiment:
                 moving_avg = np.pad(moving_avg, (pad_width, 0), 'constant', constant_values=(np.nan,))
                 axes[i + 1].plot(moving_avg, 'k')
 
-            axes[1].axvspan(0, self.n_train, facecolor='grey', alpha=0.2, zorder=0)
-            axes[1].grid(True)
-            axes[1].set_ylabel(utils.split_label(self.input_y_label, self.plot_y_labels_max_len))
-            if self.plot_legend_cols > 0:
-                axes[1].legend(ncols=self.plot_legend_cols, fontsize=10)
+        axes[1].grid(True)
+        axes[1].set_ylabel(utils.split_label(self.input_y_label, self.plot_y_labels_max_len))
+        axes[1].axvspan(0, self.n_train, facecolor='grey', alpha=0.3, zorder=0)
+        if self.plot_legend_cols > 0:
+            # axes[1].legend(ncols=self.plot_legend_cols, fontsize=10)
+            handles, labels = axes[1].get_legend_handles_labels()
+            axes[1].legend(utils.flip(handles, self.plot_legend_cols),
+                           utils.flip(labels, self.plot_legend_cols), ncol=self.plot_legend_cols, fontsize=9)
 
         if self.plot_demand_pattern:
             pat = self.wds.get_demand_pattern(pat_idx=1)
@@ -211,12 +219,20 @@ class Experiment:
                 for i, element in enumerate(sys.target_nodes):
                     axes[0].plot(sys.target_values[1:, i], label=s["name"], zorder=2)
                     if self.plot_legend_cols > 0:
-                        axes[0].legend(ncols=self.plot_legend_cols, fontsize=10)
+                        # axes[0].legend(ncols=self.plot_legend_cols, fontsize=10)
+                        handles, labels = axes[0].get_legend_handles_labels()
+                        axes[0].legend(utils.flip(handles, self.plot_legend_cols),
+                                       utils.flip(labels, self.plot_legend_cols), ncol=self.plot_legend_cols,
+                                       fontsize=9)
 
                 for i, element in enumerate(sys.control_nodes + sys.control_links):
                     axes[1].step(range(t), sys.implemented[1:, i], label=s["name"], zorder=2, where='post')
                     if self.plot_legend_cols > 0:
-                        axes[1].legend(ncols=self.plot_legend_cols, fontsize=10)
+                        # axes[1].legend(ncols=self.plot_legend_cols, fontsize=10)
+                        handles, labels = axes[1].get_legend_handles_labels()
+                        axes[1].legend(utils.flip(handles, self.plot_legend_cols),
+                                       utils.flip(labels, self.plot_legend_cols), ncol=self.plot_legend_cols,
+                                       fontsize=9)
 
         return fig
 
@@ -241,9 +257,12 @@ def run(cfg, plot=True, export_inp=''):
         e.wds.export_inp_with_patterns(export_path=export_inp)
 
     if plot:
-        fig = e.plot(e.wds, label="Node ")
-        e.plot_comparison_signals(fig, signals=e.compare_signals)
-    return e.mae
+        fig = e.plot(e.wds)
+        fig = e.plot_comparison_signals(fig, signals=e.compare_signals)
+
+    return e
+
+
 
 
 if __name__ == "__main__":
