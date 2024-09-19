@@ -263,6 +263,19 @@ def run(cfg, plot=True, export_inp=''):
     return e
 
 
+def uncertainty_analysis(cfg, export_path, n):
+    df = pd.DataFrame()
+    for noise_factor in [_ / 100 for _ in range(11)]:
+        cfg['noise_std'] = noise_factor
+        for i in range(n):
+            e = run(cfg, plot=False)
+            temp = pd.DataFrame({'noise': noise_factor, 'i': i, 'mae': e.mae, 'cost': e.cost,
+                                 'violations_count': e.v_count, 'violations_rate': e.v_rate},
+                                index=[len(df)])
+
+            df = pd.concat([df, temp])
+            df.to_csv(export_path)
+            print(df)
 
 
 if __name__ == "__main__":
