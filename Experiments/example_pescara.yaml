@@ -3,10 +3,10 @@ control_links: []
 control_nodes: ['15', '43', '65']
 target_nodes: ["1", "45", "39"]
 target_param: 12  # en.PRESSURE=11, en.QUALITY=12
-n_train: 500
+n_train: 600
 input_signal:
   name: ""
-  mu: [1.4, 1.4, 1.4]
+  mu: [1.2, 1.2, 1.2]
   sigma: [0.1, 0.1, 0.1]
   freq: null
   noise: null
@@ -15,17 +15,17 @@ input_signal:
 
 input_loss: false
 y_ref: 1
-y_lb: 0.5
-y_ub: 2
+y_lb: 0.8
+y_ub: 1.2
 u_lb: 0
 u_ub: 10
 wait: 6
 t_ini: 24
 horizon: 12
-lg: 0.01 #1000
-ly: 0.01 #100
-lu: 1 #0.1
-experiment_horizon: 336 # 168 336 504
+lg: 1 #1000
+ly: 0.0001 #100
+lu: 0.01 #0.1
+experiment_horizon: 168 # 168 336 504
 noise_std: 0.05
 compare_signals: []
 #  -
@@ -57,4 +57,4 @@ plot_constraints: true
 plot_legend_cols: 5  # number of legend columns, 0 for no legend
 plot_y_legend_label: ["y-1", "y-45", "y-39"]
 plot_u_legend_label: ["u-R1", "u-R2", "u-R3"]
-plot_y_labels_max_len: 10
+plot_y_labels_max_len: 26

@@ -23,8 +23,8 @@ wait: 1
 t_ini: 24 #48
 horizon: 12
 lg: 0.01
-ly: 100 #1000
-lu: 0.1
+ly: 10 #1000
+lu: 0.01
 experiment_horizon: 168 # 168 336 504
 noise_std: 0.05
 compare_signals:
