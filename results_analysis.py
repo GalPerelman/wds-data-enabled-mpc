@@ -10,13 +10,7 @@ from matplotlib.offsetbox import AnchoredText
 import matplotlib.colors as mcolors
 
 
-def get_atd(inp_path, n, y_ref, n_box=1000):
-    """
-    average target deviation - https://doi-org.ezlibrary.technion.ac.il/10.1061/(ASCE)WR.1943-5452.0001509
-    atd  = sum(d' * abs(c*-c))
-
-    :return:
-    """
+def run_hyd_sim(inp_path):
     ph = en.createproject()
     err = en.open(ph, inp_path, "net.rpt", "net.out")
     en.setqualtype(ph, qualType=en.CHEM, chemName='', chemUnits='', traceNode='')
@@ -28,7 +22,6 @@ def get_atd(inp_path, n, y_ref, n_box=1000):
 
     t_step = 1
     report_step = 3600
-
     res_dem = pd.DataFrame()
     res_qual = pd.DataFrame()
 
@@ -38,45 +31,54 @@ def get_atd(inp_path, n, y_ref, n_box=1000):
         # after applying the control values we wait for the measured values and save them as recorded
         t = en.runH(ph)
         t = en.runQ(ph)
-
         # record values of the target elements
         if t % report_step == 0:
             for node_idx in range(1, en.getcount(ph, en.NODE) + 1):
                 node_id = en.getnodeid(ph, node_idx)
                 demand = en.getnodevalue(ph, node_idx, en.DEMAND)
                 quality = en.getnodevalue(ph, node_idx, en.QUALITY)
-                if demand > 0:
-                    res_dem.loc[t, node_id] = demand
-                    res_qual.loc[t, node_id] = quality
-                else:
-                    continue
+                res_dem.loc[t, node_id] = demand
+                res_qual.loc[t, node_id] = quality
 
             t_step = en.nextH(ph)
             t_step = en.nextQ(ph)
 
     res_qual.index /= 3600
     res_dem.index /= 3600
-
-    n_plots = max(math.floor(en.getcount(ph, en.NODECOUNT) / n_box), 1)
-    fig, axes = plt.subplots(nrows=n_plots, figsize=(13, 4))
-    axes = np.atleast_2d(axes).ravel()
-    for _ in range(n_plots):
-        axes[_].boxplot(res_qual.iloc[-n:, _ * n_box: (_ + 1) * n_box])
-        axes[_].grid()
-
-    fig.text(0.5, 0.05, 'Node')
-    fig.text(0.02, 0.5, 'Chlorine Residuals (mg/L)', va='center', rotation='vertical')
-    plt.subplots_adjust(left=0.06, right=0.97, bottom=0.15, top=0.83)
-
-    weighted_d = res_dem.iloc[-n:, :].values / res_dem.iloc[-n:, :].values.sum()
-    atd = (weighted_d * np.abs(res_qual.iloc[-n:, :].values - y_ref)).sum()
-    mae = np.mean(np.abs(res_qual.iloc[-n:].values - y_ref))
-    print(atd, mae)
-
     en.closeH(ph)
     en.closeQ(ph)
     en.close(ph)
     return res_dem, res_qual
+
+
+def get_atd(demand, quality, n, y_ref, n_box=1000):
+    """
+    average target deviation - https://doi-org.ezlibrary.technion.ac.il/10.1061/(ASCE)WR.1943-5452.0001509
+    atd  = sum(d' * abs(c*-c))
+
+    :return:
+    """
+    positive_cols = demand.loc[:, (demand > 0).all()].columns
+    demand = demand[positive_cols]
+    quality = quality[positive_cols]
+    weighted_d = demand.iloc[-n:, :].values / demand.iloc[-n:, :].values.sum()
+    atd = (weighted_d * np.abs(quality.iloc[-n:, :].values - y_ref)).sum()
+    mae = np.mean(np.abs(quality.iloc[-n:].values - y_ref))
+    print(f"ATD: {atd:.3f}, MAE: {mae:.3f}")
+
+
+def systemwide_statistics(data, n, max_boxes):
+    n_plots = max(math.floor(len(data.columns) / max_boxes), 1)
+    fig, axes = plt.subplots(nrows=n_plots)
+    axes = np.atleast_2d(axes).ravel()
+    for _ in range(n_plots):
+        axes[_].boxplot(data.iloc[-n:, _ * max_boxes: (_ + 1) * max_boxes])
+        axes[_].set_xticklabels(data.columns[_ * max_boxes: (_ + 1) * max_boxes])
+        axes[_].grid()
+
+    fig.text(0.45, 0.05, 'Junction')
+    fig.text(0.02, 0.5, 'Chlorine Residuals (mg/L)', va='center', rotation='vertical')
+    plt.subplots_adjust(left=0.06, right=0.97, bottom=0.15, top=0.95, hspace=0.3)
 
 
 def tempo_spatial(inp_path, times: list):
