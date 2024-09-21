@@ -145,3 +145,57 @@ def flip(items, ncol):
 
 
 def calculate_cross_correlation(ts1, ts2):
+    """
+    Calculate the cross-correlation between a 1D time series and a 1D or 2D time series.
+
+    Args:
+        ts1 (numpy.array): 1D time series
+        ts2 (numpy.array): 1D or 2D time series
+
+    Returns:
+        numpy.array: Cross-correlation coefficients for different lags
+        numpy.array: Corresponding lags
+    """
+    # Prepare ts1
+    if isinstance(ts1, list):
+        ts1 = np.array(ts1)
+    if ts1.ndim == 2 and ts1.shape[1] == 1:
+        ts1 = ts1.squeeze(axis=1)
+    assert ts1.ndim == 1 and ts1.shape[0] > 1, "ts1 must be a 1D array with at least 2 elements"
+
+    # Prepare ts2
+    if isinstance(ts2, list):
+        ts2 = np.array(ts2)
+    if ts2.ndim == 2 and ts2.shape[1] == 1:
+        ts2 = ts2.squeeze(axis=1)
+    assert ts2.ndim in [1, 2], "ts2 must be a 1D or 2D array"
+
+    # Ensure the time series have the same length
+    assert len(ts1) == ts2.shape[-1], "Time series must have the same length"
+
+    if ts2.ndim == 1:
+        ts1_normalized = (ts1 - np.mean(ts1)) / np.std(ts1)
+        ts2_normalized = (ts2 - np.mean(ts2)) / np.std(ts2)
+
+        correlation = np.correlate(ts1_normalized, ts2_normalized, mode='full')
+        lags = np.arange(-len(ts2) + 1, len(ts1))
+        norm_correlation = correlation / (len(ts1) - np.abs(lags))
+
+        no_lag_index, no_lag_correlation = len(ts2) - 1, norm_correlation[len(ts2) - 1]
+        max_lag, max_correlation = lags[np.argmax(norm_correlation)], np.max(norm_correlation)
+
+        return no_lag_index, no_lag_correlation, max_lag, max_correlation
+    else:
+        # 2D time series case
+        pearson_correlations = []
+        corrs = []
+        lags = np.array([-len(ts1) + 1])
+        for i in range(ts2.shape[0]):
+            # Ensure the 2D time series has at least 2 elements
+            assert ts2[i].ndim == 1 and ts2[i].shape[
+                0] > 1, f"Time series {i} must be a 1D array with at least 2 elements"
+            corr = np.correlate(ts1, ts2[i], mode='valid')
+            corr /= np.sqrt(np.sum(ts1 ** 2) * np.sum(ts2[i] ** 2))
+            corrs.append(corr)
+            pearson_correlations.append(np.corrcoef(ts1, ts2[i])[0, 1])
+        return np.array(pearson_correlations), np.array(corrs), lags
