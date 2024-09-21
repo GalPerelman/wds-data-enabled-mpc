@@ -137,57 +137,67 @@ def grid_search_stats(results_file, independent_cols, target_cols):
 
     plt.subplots_adjust(top=0.96, wspace=0.32, left=0.085, right=0.96)
 
-def visualize_hyperparam(lambdas_path, n_train_path=''):
-    lambdas_res = pd.read_csv(lambdas_path, usecols=['lg', 'ly', 'lu', 'mae', 'v_rate'])
-    lambdas_res = lambdas_res.loc[(0 < lambdas_res['lg']) & (0 < lambdas_res['ly']) & (0 < lambdas_res['lu'])]
+
+def visualize_hyperparam(lambdas_path, n_train_path='', target_col='mae', target_y_label='MAE'):
+    """
+    Text box locations, fig size and subplots_adjust are manually adjusted with trial and error for each case study
+    """
+    min_lambda = 0
+    lambdas_res = pd.read_csv(lambdas_path, usecols=['lg', 'ly', 'lu', target_col, 'v_rate'])
+    lambdas_res = lambdas_res.loc[(min_lambda <= lambdas_res['lg']) & (min_lambda <= lambdas_res['ly']) & (min_lambda <= lambdas_res['lu'])]
     nrows = 3
     ncols = 1
-
+    alpha= 0.7
     if n_train_path:
-        n_train_res = pd.read_csv(n_train_path, usecols=['n_train', 'mae', 'v_rate'])
+        n_train_res = pd.read_csv(n_train_path, usecols=['n_train', target_col, 'v_rate'])
         nrows = 2
         ncols = 2
 
-    fig, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=(7, 5))
+    fig, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=(11, 6.5))
     axes = axes.ravel()
+    opt = lambdas_res[lambdas_res[target_col] == lambdas_res[target_col].min()].iloc[0]
 
-    opt = lambdas_res[lambdas_res['mae'] == lambdas_res['mae'].min()].iloc[0]
     def plot_ax(ax, x, mae, v_rate, x_label):
-        ax.plot(x, mae)
+        ax.plot(x, mae, markersize=5, marker='o', markerfacecolor='w')
         ax.set_xscale('log')
         ax.set_xlabel(x_label)
         ax.tick_params('y', colors='C0')
-        ax.grid()
-        ax.set_ylabel('MAE', color='C0')
+        ax.grid(True, linestyle='--', c='grey', lw=0.5)
+        ax.grid(True, which='minor', linestyle='--', c='grey', lw=0.5, alpha=0.3)
+        ax.set_ylabel(target_y_label, color='C0')
         axes_sec = ax.twinx()
-        axes_sec.plot(x, v_rate, 'C1')
+        axes_sec.plot(x, v_rate, markersize=5, c='C1', marker='o', markerfacecolor='w')
         axes_sec.tick_params('y', colors='C1')
         axes_sec.set_ylabel('Constraints Violation Rate', color='C1')
         return ax
 
-    temp = lambdas_res.loc[(lambdas_res['ly'] == opt['ly']) & (lambdas_res['lu'] == opt['lu'])]
-    axes[0] = plot_ax(axes[0], x=temp['lg'], mae=temp['mae'], v_rate=temp['v_rate'], x_label='$\lambda_g$')
-    axes[0].annotate(f'$\lambda_y$={opt["ly"]}\n$\lambda_u={opt["lu"]}$', (0.07, 0.73), xycoords='axes fraction',
-                     bbox=dict(facecolor='w', alpha=0.6, edgecolor='none'))
+    temp = lambdas_res.loc[(lambdas_res['ly'] == opt['ly']) & (lambdas_res['lu'] == opt['lu'])].sort_values("lg")
+    axes[0] = plot_ax(axes[0], x=temp['lg'], mae=temp[target_col], v_rate=temp['v_rate'], x_label='$\lambda_g$')
+    axes[0].annotate(f'$\lambda_y$={opt["ly"]}\n$\lambda_u={opt["lu"]}$', (0.06, 0.78), xycoords='axes fraction',
+                     bbox=dict(facecolor='w', alpha=alpha, edgecolor='none'))
+    #case 1 - 0.78. 0.08 # case 2 - 0.06, 0.75
 
-    temp = lambdas_res.loc[(lambdas_res['lg'] == opt['lg']) & (lambdas_res['lu'] == opt['lu'])]
-    axes[1] = plot_ax(axes[1], x=temp['ly'], mae=temp['mae'], v_rate=temp['v_rate'], x_label='$\lambda_y$')
-    axes[1].annotate(f'$\lambda_g$={opt["lg"]}\n$\lambda_u={opt["lu"]}$', (0.07, 0.73), xycoords='axes fraction')
+    temp = lambdas_res.loc[(lambdas_res['lg'] == opt['lg']) & (lambdas_res['lu'] == opt['lu'])].sort_values("ly")
+    axes[1] = plot_ax(axes[1], x=temp['ly'], mae=temp[target_col], v_rate=temp['v_rate'], x_label='$\lambda_y$')
+    axes[1].annotate(f'$\lambda_g$={opt["lg"]}\n$\lambda_u={opt["lu"]}$', (0.06, 0.75), xycoords='axes fraction',
+                     bbox=dict(facecolor='w', alpha=alpha, edgecolor='none'))
 
-    temp = lambdas_res.loc[(lambdas_res['lg'] == opt['lg']) & (lambdas_res['ly'] == opt['ly'])]
-    axes[2] = plot_ax(axes[2], x=temp['lu'], mae=temp['mae'], v_rate=temp['v_rate'], x_label='$\lambda_u$')
-    axes[2].annotate(f'$\lambda_g$={opt["lg"]}\n$\lambda_y={opt["ly"]}$', (0.07, 0.73), xycoords='axes fraction',
-                     bbox=dict(facecolor='w', alpha=0.6, edgecolor='none'))
+    temp = lambdas_res.loc[(lambdas_res['lg'] == opt['lg']) & (lambdas_res['ly'] == opt['ly'])].sort_values("lu")
+    axes[2] = plot_ax(axes[2], x=temp['lu'], mae=temp[target_col], v_rate=temp['v_rate'], x_label='$\lambda_u$')
+    axes[2].annotate(f'$\lambda_g$={opt["lg"]}\n$\lambda_y={opt["ly"]}$', (0.06, 0.75), xycoords='axes fraction',
+                     bbox=dict(facecolor='w', alpha=alpha, edgecolor='none'))
 
     if n_train_path:
-        axes[3] = plot_ax(axes[3], x=n_train_res['n_train'], mae=n_train_res['mae'], v_rate=n_train_res['v_rate'],
+        axes[3] = plot_ax(axes[3], x=n_train_res['n_train'], mae=n_train_res[target_col], v_rate=n_train_res['v_rate'],
                           x_label='T')
         axes[3].annotate(f'$\lambda_g$={opt["lg"]}\n$\lambda_y={opt["ly"]}$\n$\lambda_u={opt["lu"]}$',
-                         (0.6, 0.63), xycoords='axes fraction',
-                         bbox=dict(facecolor='w', alpha=0.6, edgecolor='none'))
+                         (0.75, 0.67), xycoords='axes fraction',
+                         bbox=dict(facecolor='w', alpha=alpha, edgecolor='none'))
         axes[3].set_xscale('linear')
+        axes[3].xaxis.set_minor_locator(MultipleLocator(25))
 
-    plt.subplots_adjust(top=0.96, hspace=0.35, wspace=0.6, left=0.09, right=0.9)
+    plt.subplots_adjust(top=0.96, hspace=0.35, wspace=0.3, left=0.07, right=0.93)
+
 
 
 
