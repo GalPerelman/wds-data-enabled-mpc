@@ -206,6 +206,63 @@ def get_total_chlorine_mass(dem, qual, n):
     print(f"Total chlorine mass (kg):\n{mass.iloc[-n:].sum(axis=0)}")
 
 
+def compare_to_pecci_et_al(n, y_ref, max_boxes):
+    dem_ref, qual_ref = run_hyd_sim("Data/pecci_et_al/pescara_optimal_nv2_nb3_extended.inp")
+    get_atd(dem_ref, qual_ref, n=n, y_ref=y_ref)
+    dem, qual = run_hyd_sim("Output/pescara_output.inp")
+    get_atd(dem, qual, n=n, y_ref=y_ref)
+
+    positive_cols = dem.loc[:, (dem > 0).all()].columns
+    qual = qual[positive_cols]
+    qual_ref = qual_ref[positive_cols]
+
+    colors = ['C0', 'C1']
+    positions = np.arange(len(qual_ref.columns))
+    width = 0.3
+
+    n_plots = max(math.floor(len(positive_cols) / max_boxes), 1)
+    fig, axes = plt.subplots(nrows=n_plots, figsize=(12, 6))
+    axes = np.atleast_2d(axes).ravel()
+    leg_elements = [plt.Rectangle((0, 0), 1, 1, facecolor=c, edgecolor='k', alpha=0.6) for c in colors]
+
+    for _ in range(n_plots):
+        idx_min, idx_max = _ * max_boxes, (_ + 1) * max_boxes
+        bp1 = axes[_].boxplot([qual[col].iloc[-n:] for col in qual.columns[idx_min: idx_max]],
+                              positions=positions[:max_boxes] - width / 2, widths=width, patch_artist=True,
+                              flierprops={'markersize': 4})
+        bp2 = axes[_].boxplot([qual_ref[col].iloc[-n:] for col in qual_ref.columns[idx_min: idx_max]],
+                              positions=positions[:max_boxes] + width / 2, widths=width, patch_artist=True,
+                              flierprops={'markersize': 4})
+        for bplot, color in zip([bp1, bp2], colors):
+            for patch in bplot['boxes']:
+                patch.set_facecolor(color)
+                patch.set_alpha(0.6)
+            for element in ['whiskers', 'caps', 'medians']:
+                plt.setp(bplot[element], color='k')
+            plt.setp(bplot['fliers'], markeredgecolor='grey')
+
+        axes[_].set_xticks([_ for _ in range(len(positions[idx_min: idx_max]))])
+        axes[_].set_xticklabels(qual.columns[idx_min: idx_max])
+        axes[_].grid()
+
+        if _ == 0:
+            axes[_].legend(leg_elements, ['DeePC', 'Pecci et al.'], loc='upper left', ncol=2)
+
+    fig.text(0.01, 0.5, 'Chlorine Residuals (mg\L)', va='center', rotation='vertical')
+    fig.text(0.5, 0.02, 'Junction')
+    fig.subplots_adjust(top=0.96, left=0.07, right=0.98, hspace=0.3)
+
+    fig, axes = plt.subplots(nrows=3, sharex=True)
+    for _, j in enumerate(["1", "39", "45"]):
+        axes[_].plot(range(n), qual.loc[:, j].iloc[-n:], label='DeePC')
+        axes[_].plot(range(n), qual_ref.loc[:, j].iloc[-n:], label='Pecci et al.')
+        axes[_].grid()
+        axes[_].set_title(f"Junction {int(j)}", fontsize=9)
+        axes[_].legend(ncols=2)
+        axes[_].set_ylim(0.8, 1.16)
+    axes[-1].set_xlabel("Time (hr)")
+    fig.text(0.02, 0.5, 'Chlorine Residuals (mg\L)', va='center', rotation='vertical')
+    fig.subplots_adjust(top=0.96, hspace=0.3)
 
 
 
