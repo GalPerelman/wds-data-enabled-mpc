@@ -117,13 +117,13 @@ def tempo_spatial(inp_path, times: list):
         fig.delaxes(axes[i])  # Delete each unused axis
 
 
-def analyze_grid_search(results_file, independent_cols, target_cols):
+def grid_search_stats(results_file, independent_cols, target_cols):
     df = pd.read_csv(results_file, index_col=0)
 
     n = max(len(target_cols), len(independent_cols))
     ncols = max(1, int(math.ceil(math.sqrt(n))))
     nrows = max(1, int(math.ceil(n / ncols)))
-    fig, axes = plt.subplots(nrows=nrows, ncols=ncols)
+    fig, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=(8, 4))
     axes = axes.ravel()
     k = 0
     for indep_col, indep_label in independent_cols.items():
@@ -135,6 +135,7 @@ def analyze_grid_search(results_file, independent_cols, target_cols):
             axes[k].xaxis.set_major_formatter(mtick.FuncFormatter(lambda x, _: '{:.0%}'.format((x-1)/100)))
             k += 1
 
+    plt.subplots_adjust(top=0.96, wspace=0.32, left=0.085, right=0.96)
 
 def visualize_hyperparam(lambdas_path, n_train_path=''):
     lambdas_res = pd.read_csv(lambdas_path, usecols=['lg', 'ly', 'lu', 'mae', 'v_rate'])
