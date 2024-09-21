@@ -199,6 +199,11 @@ def visualize_hyperparam(lambdas_path, n_train_path='', target_col='mae', target
     plt.subplots_adjust(top=0.96, hspace=0.35, wspace=0.3, left=0.07, right=0.93)
 
 
+def get_total_chlorine_mass(dem, qual, n):
+    mass = -dem[['15', '43', '65']] * qual[['15', '43', '65']] * 3600 / 1000000
+    print(f"Avg outflow (L/s):\n{-dem[['15', '43', '65']].iloc[-n:].mean(axis=0)}")
+    print(f"Avg source concentration (mg/L):\n{qual[['15', '43', '65']].iloc[-n:].mean(axis=0)}")
+    print(f"Total chlorine mass (kg):\n{mass.iloc[-n:].sum(axis=0)}")
 
 
 
