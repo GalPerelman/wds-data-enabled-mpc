@@ -1,3 +1,4 @@
+import itertools
 import warnings
 
 import pandas as pd
@@ -136,3 +137,11 @@ def split_label(label, max_length):
         lines.append(current_line)
 
     return '\n'.join(lines)
+
+
+def flip(items, ncol):
+    """transpose legend labels"""
+    return itertools.chain(*[items[i::ncol] for i in range(ncol)])
+
+
+def calculate_cross_correlation(ts1, ts2):
