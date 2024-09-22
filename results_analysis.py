@@ -8,6 +8,7 @@ from matplotlib import pyplot as plt
 from matplotlib import ticker as mtick
 from matplotlib.offsetbox import AnchoredText
 import matplotlib.colors as mcolors
+from matplotlib.ticker import MultipleLocator
 
 
 def run_hyd_sim(inp_path):
@@ -263,6 +264,31 @@ def compare_to_pecci_et_al(n, y_ref, max_boxes):
     axes[-1].set_xlabel("Time (hr)")
     fig.text(0.02, 0.5, 'Chlorine Residuals (mg\L)', va='center', rotation='vertical')
     fig.subplots_adjust(top=0.96, hspace=0.3)
+
+
+if __name__ == "__main__":
+    # Case study I - Fossolo
+    visualize_hyperparam("Output/fossolo_lambdas_search_const_seed.csv",
+                         n_train_path="Output/fossolo_n_train_search.csv",
+                         target_col='mae')
+    grid_search_stats("Output/fossolo_noise.csv",
+                      independent_cols={'noise': 'Noise Factor'},
+                      target_cols={'mae': 'MAE', 'violations_rate': 'Constraints Violations Rate'})
+
+    # Case study II - Pescara
+    grid_search_stats("Output/old/pescara_noise.csv",
+                        independent_cols={'noise': 'Noise Factor'},
+                        target_cols={'mae': 'MAE', 'violations_rate': 'Violations Rate'})
+
+    visualize_hyperparam("Output/pescara_lambdas_search_const_seed.csv",
+                         n_train_path="Output/pescara_n_train_search.csv")
+
+    dem, qual = run_hyd_sim("Output/pescara_output.inp")
+    systemwide_statistics(qual, n=168, max_boxes=30)
+    compare_to_pecci_et_al(n=168, y_ref=1, max_boxes=20)
+    T = 600 + 24 * 5
+    tempo_spatial("Output/pescara_output.inp", times=[T+0, T+3, T+6, T+9, T+12, T+15, T+18, T+21])
+    plt.show()
 
 
 
