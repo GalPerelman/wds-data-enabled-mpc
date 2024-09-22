@@ -22,6 +22,7 @@ N_TRAIN_PARAM_GRID = {
 
 
 def grid_search(export_path, cfg, param_grid):
+    np.random.seed(42)
     df = pd.DataFrame()
 
     keys = param_grid.keys()
