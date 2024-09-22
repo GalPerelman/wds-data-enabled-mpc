@@ -126,7 +126,7 @@ class Experiment:
         return violations_count, violations_rate
 
     def plot(self, sys, fig=None, moving_avg_size=0):
-        n_inputs = 1 #sys.implemented.shape[1]
+        n_inputs = 1  # sys.implemented.shape[1]
         n_outputs = sys.target_values.shape[1]
         if self.plot_demand_pattern:
             k = 1
