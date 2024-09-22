@@ -9,6 +9,7 @@ import pandas as pd
 from matplotlib import ticker
 
 import ddpc
+import graphs
 import system
 import utils
 
@@ -75,7 +76,6 @@ class Experiment:
         # init_input = self.wds.get_init_input_random(mu=self.init_mu, sigma=self.init_sigma, n=self.n_train)
         # mask = (np.arange(len(init_input)) % 12 >= 6) & (np.arange(len(init_input)) % 12 <= 11)
         # init_input[mask] = 0
-
         model = ddpc.DDPC(sys=self.wds, input_loss=self.input_loss, y_ref=self.y_ref, y_lb=self.y_lb, y_ub=self.y_ub,
                           u_lb=self.u_lb, u_ub=self.u_ub, wait=self.wait, t_ini=self.t_ini, horizon=self.horizon,
                           lambda_g=self.lg, lambda_y=self.ly, lambda_u=self.lu,
@@ -153,7 +153,8 @@ class Experiment:
         axes[0].grid(True)
         axes[0].set_ylabel(utils.split_label(self.output_y_label, self.plot_y_labels_max_len))
         if self.plot_constraints:
-            axes[0].hlines(y=self.y_lb, xmin=0, xmax=t, linestyles="--", color='k', alpha=0.5, zorder=5, label='Constraints')
+            axes[0].hlines(y=self.y_lb, xmin=0, xmax=t, linestyles="--", color='k', alpha=0.5, zorder=5,
+                           label='Constraints')
             axes[0].hlines(y=self.y_ub, xmin=0, xmax=t, linestyles="--", color='k', alpha=0.5, zorder=5)
         if self.plot_legend_cols > 0:
             # axes[0].legend(ncols=self.plot_legend_cols, fontsize=10)
@@ -292,14 +293,17 @@ if __name__ == "__main__":
     np.random.seed(global_seed)
 
     # Example 1
-    with open("example_fossolo.yaml") as f:
+    with open("Experiments/example_fossolo.yaml") as f:
         cfg = yaml.load(f, Loader=yaml.SafeLoader)
-        run(cfg)
+        e = run(cfg)
+        graphs.customize_plot_fossolo(e)
+        uncertainty_analysis(cfg, export_path="Output/fossolo_noise-2.csv", n=50)
 
     # Example 2
-    with open("example_pescara.yaml") as f:
+    with open("Experiments/example_pescara.yaml") as f:
         cfg = yaml.load(f, Loader=yaml.SafeLoader)
-        run(cfg, export_inp="pescara_output.inp")
-    grid_search(export_path="pescara.csv", cfg=cfg)
+        e = run(cfg, export_inp="Output/pescara_output.inp")
+        graphs.customize_plot_pescara(e)
+    uncertainty_analysis(cfg, export_path="Output/pescara_noise.csv", n=50)
 
     plt.show()
