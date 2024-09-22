@@ -91,7 +91,9 @@ class Experiment:
         self.mae, self.me = self.get_error(y=y)
         self.v_count, self.v_rate = self.get_violations(y=y)
         print(f"Cost: {self.cost:.3f} | MAE: {self.mae:.3f} | ME: {self.me:.3f} | Violations: {self.v_count:.0f}"
-              f"| ME: {self.v_rate:.3f}")
+              f"| Violations Rate: {self.v_rate:.3f}")
+        v_count, v_rate = self.get_violations(y=y, lb=20, ub=40)
+        print(f"{20}-{40} Violations: {v_count:.0f} | Violations Rate: {v_rate:.3f}")
         # mae, me = self.get_error(y=self.wds.target_values[-self.experiment_horizon:, :], n=24)
         # print(f"24 -> MAE: {mae:.3f} | ME: {me:.3f}")
         return self.wds
