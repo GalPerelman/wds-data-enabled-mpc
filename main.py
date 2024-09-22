@@ -90,6 +90,11 @@ class Experiment:
         self.cost = np.linalg.norm(y - ref, 'fro') ** 2 + self.input_loss * np.linalg.norm(u, 'fro') ** 2
         self.mae, self.me = self.get_error(y=y)
         self.v_count, self.v_rate = self.get_violations(y=y)
+
+        # pat = self.wds.get_demand_pattern(pat_idx=1)
+        # pat = utils.extend_array_to_n_values(pat, u.shape[0])
+        # no_lag_index, no_lag_correlation, max_lag, max_correlation = utils.calculate_cross_correlation(u, pat)
+        # print(no_lag_correlation, max_lag, max_correlation)
         print(f"Cost: {self.cost:.3f} | MAE: {self.mae:.3f} | ME: {self.me:.3f} | Violations: {self.v_count:.0f}"
               f"| Violations Rate: {self.v_rate:.3f}")
         v_count, v_rate = self.get_violations(y=y, lb=20, ub=40)
