@@ -213,8 +213,8 @@ class Experiment:
 
             # init_input = np.tile(init_input, (1, len(self.control_links) + len(self.control_nodes)))
             sys, u, y = run_comparable_signal(sys, init_input, noise_std=self.noise_std)
-            mae, me = self.get_error(y=sys.target_values[-self.experiment_horizon:, :])
-            print(f"{s['name']} --> MAE: {mae:.6f} | ME: {me:.3f}")
+            u = sys.implemented[-self.experiment_horizon:, :]
+            y = sys.target_values[-self.experiment_horizon:, :]
 
             t = len(sys.target_values[1:, 0])
             if "plot" in s and s["plot"]:
@@ -236,7 +236,7 @@ class Experiment:
                                        utils.flip(labels, self.plot_legend_cols), ncol=self.plot_legend_cols,
                                        fontsize=9)
 
-        return fig
+        return fig, u, y
 
 
 def run_comparable_signal(sys, ref_input_signal, noise_std):
