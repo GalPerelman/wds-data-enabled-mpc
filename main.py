@@ -12,8 +12,9 @@ import ddpc
 import graphs
 import system
 import utils
+from pid import PID
 
-COLORS = ["#0077B8", "#DF5353", "#fdc85e", "#b7b3aa"]
+COLORS = ["#0686cc", "#DF5353", "#fdc85e", "#b7b3aa"]#0077B8
 plt.rcParams['axes.prop_cycle'] = plt.cycler(color=COLORS)
 
 
@@ -105,7 +106,7 @@ class Experiment:
 
     def get_error(self, y, n=None):
         if not isinstance(self.y_ref, np.ndarray):
-            y_ref = np.array([self.y_ref])
+            y_ref = np.tile(self.y_ref, (len(y), 1))
         else:
             y_ref = self.y_ref
 
@@ -139,16 +140,16 @@ class Experiment:
             k = 0
 
         if fig is None:
-            inputs_heights = [1 for _ in range(n_inputs + k)]
+            inputs_heights = [1 for _ in range(n_inputs)] + [0.5 for _ in range(k)]
             fig, axes = plt.subplots(nrows=n_inputs + 1 + k, sharex=True, height_ratios=[1] + inputs_heights)
         else:
             axes = fig.axes
 
         t = len(sys.target_values[1:, 0])
         for i, element in enumerate(sys.target_nodes):
-            axes[0].plot(sys.target_values[1:, i], label=self.plot_y_legend_label[i], zorder=4)
+            axes[0].plot(sys.target_values[1:, i], label=self.plot_y_legend_label[i], zorder=10)
 
-        axes[0].hlines(y=self.y_ref, xmin=0, xmax=t, color='k', zorder=5, label="$y_{ref}$")
+        axes[0].hlines(y=self.y_ref, xmin=0, xmax=t, color='k', zorder=1, linestyle='--', label="$y_{ref}$")
         axes[0].axvspan(0, self.n_train, facecolor='grey', alpha=0.3, zorder=0)
         axes[0].grid(True)
         axes[0].set_ylabel(utils.split_label(self.output_y_label, self.plot_y_labels_max_len))
@@ -223,9 +224,20 @@ class Experiment:
             y = sys.target_values[-self.experiment_horizon:, :]
 
             t = len(sys.target_values[1:, 0])
+
+            mae, me = self.get_error(y=y)
+            ref = np.ones(y.shape) * self.y_ref
+            cost = np.linalg.norm(y - ref, 'fro') ** 2 + self.input_loss * np.linalg.norm(u, 'fro') ** 2
+            v_count, v_rate = self.get_violations(y=y)
+            print(f"{s['name']} --> Cost: {cost:.3f} | MAE: {mae:.3f} | ME: {me:.3f}")
+            print(f"{s['name']} --> {self.y_lb}-{self.y_ub} Violations: {v_count:.0f}"
+                  f" | Violations Rate: {v_rate:.3f}")
+            v_count, v_rate = self.get_violations(y=y, lb=20, ub=40)
+            print(f"{s['name']} --> {20}-{40} Violations: {v_count:.0f} | Violations Rate: {v_rate:.3f}")
+
             if "plot" in s and s["plot"]:
                 for i, element in enumerate(sys.target_nodes):
-                    axes[0].plot(sys.target_values[1:, i], label=s["name"], zorder=2)
+                    axes[0].plot(sys.target_values[1:, i], label=s["name"], zorder=2, linewidth=1.2)
                     if self.plot_legend_cols > 0:
                         # axes[0].legend(ncols=self.plot_legend_cols, fontsize=10)
                         handles, labels = axes[0].get_legend_handles_labels()
@@ -234,7 +246,7 @@ class Experiment:
                                        fontsize=9)
 
                 for i, element in enumerate(sys.control_nodes + sys.control_links):
-                    axes[1].step(range(t), sys.implemented[1:, i], label=s["name"], zorder=2, where='post')
+                    axes[1].step(range(t), sys.implemented[1:, i], label=s["name"], zorder=2, where='post', linewidth=1.2)
                     if self.plot_legend_cols > 0:
                         # axes[1].legend(ncols=self.plot_legend_cols, fontsize=10)
                         handles, labels = axes[1].get_legend_handles_labels()
@@ -243,6 +255,29 @@ class Experiment:
                                        fontsize=9)
 
         return fig, u, y
+
+    def run_pid(self, kp, ki, kd, T):
+        sys = system.WDSControl(inp_path=self.inp_path,
+                                control_links=self.control_links,
+                                control_nodes=self.control_nodes,
+                                target_nodes=self.target_nodes,
+                                target_param=self.target_param
+                                )
+
+        pid = PID(kp=kp, ki=ki, kd=kd, set_point=self.y_ref)
+        current_value = 0.5 * (self.u_lb + self.u_ub)  # Initial value
+        for _ in range(T):
+            u_optimal = pid.compute(current_value=current_value)
+            sys.apply_input(u=np.array([u_optimal]), noise_std=self.noise_std)
+            current_value = sys.get_last_n_samples(1).y[0]
+
+        y = sys.target_values
+        u = sys.implemented
+        ref = np.ones(y.shape) * self.y_ref
+        self.cost = np.linalg.norm(y - ref, 'fro') ** 2 + self.input_loss * np.linalg.norm(u, 'fro') ** 2
+        self.mae, self.me = self.get_error(y=y)
+        self.v_count, self.v_rate = self.get_violations(y=y)
+        return u, y
 
 
 def run_comparable_signal(sys, ref_input_signal, noise_std):
