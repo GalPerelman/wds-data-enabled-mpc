@@ -47,6 +47,34 @@ def grid_search(export_path, cfg, param_grid):
             print(e)
 
 
+def pid_grid_search(export_path, cfg_path, param_grid, T):
+    np.random.seed(42)
+    df = pd.DataFrame()
+
+    keys = param_grid.keys()
+    values = param_grid.values()
+    for i, combination in enumerate(itertools.product(*values)):
+        iter_params = dict(zip(keys, combination))
+
+        try:
+            with open(cfg_path) as f:
+                cfg = yaml.load(f, Loader=yaml.SafeLoader)
+
+            experiment = main.Experiment(**cfg)
+            experiment.run_pid(kp=iter_params['kp'], kd=iter_params['kd'], ki=iter_params['ki'], T=T)
+
+            iter_params['cost'] = experiment.cost
+            iter_params['mae'] = experiment.mae
+            iter_params['v_count'] = experiment.v_count
+            iter_params['v_rate'] = experiment.v_rate
+            temp = pd.DataFrame(iter_params, index=[len(df)])
+            df = pd.concat([df, temp])
+            print(df)
+            df.to_csv(export_path)
+        except Exception as e:
+            print(e)
+
+
 def random_search(export_path, cfg, n):
     df = pd.DataFrame()
     lambdas = [0, 0.01, 0.1, 1, 10, 100, 1000]
